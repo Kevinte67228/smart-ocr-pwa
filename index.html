@@ -75,15 +75,30 @@
           </label>
         </div>
 
-        <div class="flex items-center space-x-2 text-xs text-slate-400">
-          <i data-lucide="globe" class="w-4 h-4"></i>
-          <select id="langSelect" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-blue-500">
-            <option value="chi_tra+eng">繁體中文 + 英文</option>
-            <option value="chi_tra">繁體中文</option>
-            <option value="chi_sim+eng">簡體中文 + 英文</option>
-            <option value="eng">純英文 (English)</option>
-            <option value="jpn">日本語</option>
-          </select>
+        <div class="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+          <div class="flex items-center space-x-1.5">
+            <i data-lucide="globe" class="w-4 h-4 text-blue-400"></i>
+            <select id="langSelect" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-blue-500 font-medium">
+              <option value="jpn+chi_tra" selected>🇯🇵 日本語 + 漢字混排 (推薦)</option>
+              <option value="jpn">🇯🇵 日本語 (純日語橫排)</option>
+              <option value="jpn+eng">🇯🇵 日本語 + 英文 (標籤商品)</option>
+              <option value="jpn_vert+chi_tra">🇯🇵 日本語直書 + 漢字 (直書推薦)</option>
+              <option value="jpn_vert">🇯🇵 日本語 (純直書)</option>
+              <option value="chi_tra+eng">🇹🇼 繁體中文 + 英文</option>
+              <option value="chi_tra">🇹🇼 繁體中文</option>
+              <option value="chi_sim+eng">🇨🇳 簡體中文 + 英文</option>
+              <option value="eng">🇺🇸 純英文 (English)</option>
+            </select>
+          </div>
+          <div class="flex items-center space-x-1.5">
+            <i data-lucide="layout" class="w-4 h-4 text-indigo-400"></i>
+            <select id="psmSelect" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-blue-500 font-medium">
+              <option value="3">全自動排版 (PSM 3)</option>
+              <option value="6">單一區塊/段落 (PSM 6 書頁/卡片)</option>
+              <option value="11">稀疏文字/包裝 (PSM 11 招牌)</option>
+              <option value="5">垂直直書 (PSM 5)</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -125,11 +140,14 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-          <!-- 灰階與二值化開關 -->
+          <!-- 灰階與二值化開關 + Otsu 自動計算 -->
           <div class="flex flex-col space-y-1.5 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
             <div class="flex items-center justify-between text-xs">
-              <label class="text-slate-300 font-medium">二值化 (去光影陰影)</label>
-              <input type="checkbox" id="chkThreshold" class="w-4 h-4 text-blue-600 rounded focus:ring-0">
+              <label class="text-slate-300 font-medium">二值化 (去陰影)</label>
+              <div class="flex items-center space-x-1.5">
+                <button id="btnAutoOtsu" title="自動計算最佳光影二值閥值" class="px-1.5 py-0.5 text-[10px] bg-indigo-600/70 hover:bg-indigo-600 text-white rounded">Otsu 自動</button>
+                <input type="checkbox" id="chkThreshold" class="w-4 h-4 text-blue-600 rounded focus:ring-0">
+              </div>
             </div>
             <input type="range" id="rngThreshold" min="50" max="220" value="130" class="w-full h-1 bg-slate-700 rounded-lg accent-blue-500">
           </div>
@@ -138,7 +156,7 @@
           <div class="flex flex-col space-y-1.5 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
             <div class="flex items-center justify-between text-xs">
               <label class="text-slate-300 font-medium">字跡強化 (對比)</label>
-              <span id="txtContrast" class="text-slate-400">100%</span>
+              <span id="txtContrast" class="text-slate-400">120%</span>
             </div>
             <input type="range" id="rngContrast" min="50" max="250" value="120" class="w-full h-1 bg-slate-700 rounded-lg accent-blue-500">
           </div>
@@ -151,6 +169,22 @@
             </div>
             <input type="range" id="rngAngle" min="-15" max="15" value="0" step="0.5" class="w-full h-1 bg-slate-700 rounded-lg accent-blue-500">
           </div>
+        </div>
+
+        <!-- 漢字假名細節增強選項 -->
+        <div class="flex flex-wrap items-center gap-2 pt-1 text-xs">
+          <label class="inline-flex items-center space-x-1.5 bg-slate-900/70 hover:bg-slate-900 px-2.5 py-1.5 rounded-lg border border-slate-800 cursor-pointer text-slate-300">
+            <input type="checkbox" id="chkSharpen" class="w-3.5 h-3.5 text-blue-500 rounded focus:ring-0" checked>
+            <span>✨ 漢字銳化 (防筆劃沾黏)</span>
+          </label>
+          <label class="inline-flex items-center space-x-1.5 bg-slate-900/70 hover:bg-slate-900 px-2.5 py-1.5 rounded-lg border border-slate-800 cursor-pointer text-slate-300">
+            <input type="checkbox" id="chkUpscale" class="w-3.5 h-3.5 text-blue-500 rounded focus:ring-0">
+            <span>🔍 2x 智慧放大 (強化小字)</span>
+          </label>
+          <label class="inline-flex items-center space-x-1.5 bg-slate-900/70 hover:bg-slate-900 px-2.5 py-1.5 rounded-lg border border-slate-800 cursor-pointer text-slate-300">
+            <input type="checkbox" id="chkInvert" class="w-3.5 h-3.5 text-blue-500 rounded focus:ring-0">
+            <span>🌓 黑白反轉 (深底白字)</span>
+          </label>
         </div>
 
         <!-- 辨識執行鈕 -->
@@ -183,14 +217,15 @@
             <span id="badgeConfidence" class="hidden text-xs px-2 py-0.5 rounded-full bg-emerald-900/60 text-emerald-400 font-mono border border-emerald-700/50">信心度 0%</span>
           </div>
           <div class="flex items-center space-x-1.5">
-            <button id="btnCleanSpaces" title="清除中文贅字空白" class="p-1.5 text-xs bg-slate-700/70 hover:bg-slate-700 text-slate-300 rounded-lg transition">去除空白</button>
+            <button id="btnCleanSpaces" title="去除 CJK/日語漢字多餘空格" class="px-2 py-1 text-xs bg-slate-700/70 hover:bg-slate-700 text-slate-300 rounded-lg transition">去多餘空格</button>
+            <button id="btnFixJapanese" title="智慧修復日漢常見混淆 (長音「ー」、濁點、全半形)" class="px-2 py-1 text-xs bg-indigo-600/80 hover:bg-indigo-600 text-white rounded-lg transition font-medium">🇯🇵 日漢校正</button>
             <button id="btnCopy" class="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-700 transition" title="複製純文字">
               <i data-lucide="copy" class="w-4 h-4"></i>
             </button>
             <button id="btnDownload" class="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-700 transition" title="下載 .txt 檔">
               <i data-lucide="download" class="w-4 h-4"></i>
             </button>
-            <button id="btnSpeak" class="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-700 transition" title="語音朗讀">
+            <button id="btnSpeak" class="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-700 transition" title="語音朗讀 (自動匹配日語/國語)">
               <i data-lucide="volume-2" class="w-4 h-4"></i>
             </button>
           </div>
@@ -206,9 +241,12 @@
           <span class="text-xs text-slate-400 font-medium">智慧實體快速提取 (Regex)：</span>
           <div class="flex flex-wrap gap-1.5">
             <button id="extPhone" class="text-xs bg-slate-700/50 hover:bg-blue-600/30 hover:text-blue-300 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-600 transition">📞 電話號碼</button>
+            <button id="extJpPhone" class="text-xs bg-slate-700/50 hover:bg-indigo-600/30 hover:text-indigo-300 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-600 transition">🇯🇵 日本電話</button>
+            <button id="extJpZip" class="text-xs bg-slate-700/50 hover:bg-indigo-600/30 hover:text-indigo-300 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-600 transition">📮 郵便番號</button>
+            <button id="extJpYen" class="text-xs bg-slate-700/50 hover:bg-emerald-600/30 hover:text-emerald-300 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-600 transition">💴 日圓金額</button>
             <button id="extEmail" class="text-xs bg-slate-700/50 hover:bg-blue-600/30 hover:text-blue-300 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-600 transition">✉️ 電子信箱</button>
-            <button id="extTaxId" class="text-xs bg-slate-700/50 hover:bg-blue-600/30 hover:text-blue-300 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-600 transition">🏢 統一編號 (8碼)</button>
-            <button id="extNumbers" class="text-xs bg-slate-700/50 hover:bg-blue-600/30 hover:text-blue-300 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-600 transition">🔢 所有純數字</button>
+            <button id="extTaxId" class="text-xs bg-slate-700/50 hover:bg-blue-600/30 hover:text-blue-300 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-600 transition">🏢 統編/番號</button>
+            <button id="extNumbers" class="text-xs bg-slate-700/50 hover:bg-blue-600/30 hover:text-blue-300 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-600 transition">🔢 純數字</button>
           </div>
         </div>
 
@@ -286,6 +324,23 @@
     const rngAngle = document.getElementById('rngAngle');
     const txtContrast = document.getElementById('txtContrast');
     const txtAngle = document.getElementById('txtAngle');
+    const chkSharpen = document.getElementById('chkSharpen');
+    const chkUpscale = document.getElementById('chkUpscale');
+    const chkInvert = document.getElementById('chkInvert');
+    const btnAutoOtsu = document.getElementById('btnAutoOtsu');
+    const langSelect = document.getElementById('langSelect');
+    const psmSelect = document.getElementById('psmSelect');
+    const btnFixJapanese = document.getElementById('btnFixJapanese');
+
+    // 語言切換時智慧聯動排版模式
+    langSelect.addEventListener('change', () => {
+      const v = langSelect.value;
+      if (v.includes('vert')) {
+        psmSelect.value = '5'; // 直書模式
+      } else if (psmSelect.value === '5') {
+        psmSelect.value = '3'; // 回歸自動橫排
+      }
+    });
 
     // 監聽圖片載入
     function loadImage(file) {
@@ -313,7 +368,60 @@
     document.getElementById('fileInput').addEventListener('change', (e) => loadImage(e.target.files[0]));
     document.getElementById('cameraInput').addEventListener('change', (e) => loadImage(e.target.files[0]));
 
-    // 前處理管線 (旋轉、傾斜校正、對比、二值化)
+    // 3x3 卷積銳化濾鏡 (突顯漢字筆劃邊緣，防止複雜字跡黏成一團)
+    function applySharpen(imgData) {
+      const w = imgData.width;
+      const h = imgData.height;
+      const src = new Uint8ClampedArray(imgData.data);
+      const dst = imgData.data;
+      for (let y = 1; y < h - 1; y++) {
+        const yW = y * w;
+        const upW = (y - 1) * w;
+        const downW = (y + 1) * w;
+        for (let x = 1; x < w - 1; x++) {
+          const idx = (yW + x) * 4;
+          const up = (upW + x) * 4;
+          const down = (downW + x) * 4;
+          const left = (yW + (x - 1)) * 4;
+          const right = (yW + (x + 1)) * 4;
+          for (let c = 0; c < 3; c++) {
+            let val = 5 * src[idx + c] - src[up + c] - src[down + c] - src[left + c] - src[right + c];
+            dst[idx + c] = val < 0 ? 0 : (val > 255 ? 255 : val);
+          }
+        }
+      }
+    }
+
+    // Otsu 最大類間方差自動最佳閥值計算 (去光影陰影利器)
+    function computeOtsuThreshold(imgData) {
+      const d = imgData.data;
+      const hist = new Int32Array(256);
+      const total = d.length / 4;
+      for (let i = 0; i < d.length; i += 4) {
+        let g = Math.round(0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2]);
+        hist[g]++;
+      }
+      let sum = 0;
+      for (let t = 0; t < 256; t++) sum += t * hist[t];
+      let sumB = 0, wB = 0, maxVar = 0, bestT = 130;
+      for (let t = 0; t < 256; t++) {
+        wB += hist[t];
+        if (wB === 0) continue;
+        let wF = total - wB;
+        if (wF === 0) break;
+        sumB += t * hist[t];
+        let mB = sumB / wB;
+        let mF = (sum - sumB) / wF;
+        let variance = wB * wF * (mB - mF) * (mB - mF);
+        if (variance > maxVar) {
+          maxVar = variance;
+          bestT = t;
+        }
+      }
+      return bestT;
+    }
+
+    // 前處理管線 (旋轉、傾斜校正、對比、二值化、銳化、反轉)
     function applyPipeline() {
       if (!rawImage) return;
 
@@ -340,6 +448,7 @@
       const factor = (259 * (contrast * 255 + 255)) / (255 * (259 - contrast * 255));
       const doThreshold = chkThreshold.checked;
       const threshVal = parseInt(rngThreshold.value, 10);
+      const doInvert = chkInvert.checked;
 
       for (let i = 0; i < d.length; i += 4) {
         // 對比增強
@@ -355,15 +464,25 @@
           gray = gray >= threshVal ? 255 : 0;
         }
 
+        // 黑白反轉 (深底白字專用)
+        if (doInvert) {
+          gray = 255 - gray;
+        }
+
         d[i] = gray;
         d[i+1] = gray;
         d[i+2] = gray;
       }
 
+      // 漢字筆劃銳化
+      if (chkSharpen.checked) {
+        applySharpen(imgData);
+      }
+
       ctx.putImageData(imgData, 0, 0);
     }
 
-    // 綁定前處理滑桿事件
+    // 綁定前處理控制項事件
     rngContrast.addEventListener('input', (e) => {
       txtContrast.innerText = `${e.target.value}%`;
       applyPipeline();
@@ -374,6 +493,18 @@
     });
     chkThreshold.addEventListener('change', applyPipeline);
     rngThreshold.addEventListener('input', applyPipeline);
+    chkSharpen.addEventListener('change', applyPipeline);
+    chkInvert.addEventListener('change', applyPipeline);
+
+    // Otsu 自動計算一鍵按鈕
+    btnAutoOtsu.addEventListener('click', () => {
+      if (!rawImage) return;
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const optT = computeOtsuThreshold(imgData);
+      rngThreshold.value = Math.max(60, Math.min(200, optT));
+      chkThreshold.checked = true;
+      applyPipeline();
+    });
 
     document.getElementById('btnRotateRight').addEventListener('click', () => {
       rotationAngle = (rotationAngle + 90) % 360;
@@ -387,9 +518,11 @@
       rotationAngle = 0;
       rngAngle.value = 0;
       txtAngle.innerText = "0°";
-      rngContrast.value = 100;
-      txtContrast.innerText = "100%";
+      rngContrast.value = 120;
+      txtContrast.innerText = "120%";
       chkThreshold.checked = false;
+      chkInvert.checked = false;
+      chkSharpen.checked = true;
       applyPipeline();
     });
 
@@ -446,6 +579,40 @@
     const resultText = document.getElementById('resultText');
     const badgeConfidence = document.getElementById('badgeConfidence');
 
+    // 輔助函式：去除 CJK (漢字、平假名、片假名、日漢標點) 間的無效空白，同時保留英數空格
+    function cleanCJKSpaces(str) {
+      if (!str) return '';
+      const cjk = '[\\u4e00-\\u9fa5\\u3400-\\u4dbf\\u3040-\\u309f\\u30a0-\\u30ff\\u31f0-\\u31ff\\uff66-\\uff9f\\u3000-\\u303f\\uff01-\\uff65]';
+      const reg = new RegExp(`(${cjk})\\s+(${cjk})`, 'g');
+      return str.replace(reg, '$1$2').replace(reg, '$1$2');
+    }
+
+    // 輔助函式：日漢 OCR 常見混淆與格式修復
+    function fixJapaneseOCR(str) {
+      if (!str) return '';
+      let res = str;
+      // 1. Unicode NFKC 正規化 (全形英數轉半形、半形假名轉標準全形)
+      res = res.normalize('NFKC');
+
+      // 2. 修復片假名長音「ー」被誤判為漢字數字「一」、全形減號或破折號
+      res = res.replace(/([ァ-ヴー])([一―—\-])/g, '$1ー');
+
+      // 3. 濁點 / 半濁點結合修復 (例如 か゛-> が, は゜-> ぱ)
+      res = res.replace(/([か-とは-ほカ-トハ-ホ])[\s]*[゛ﾞ]/g, (m, c) => (c + '\u3099').normalize('NFC'));
+      res = res.replace(/([は-ほハ-ホ])[\s]*[゜ﾟ]/g, (m, c) => (c + '\u309A').normalize('NFC'));
+
+      // 4. 清理日文假名與漢字之間非必要的空格
+      res = cleanCJKSpaces(res);
+
+      // 5. 日式引號與括號空格修復
+      res = res.replace(/【\s+/g, '【').replace(/\s+】/g, '】')
+               .replace(/「\s+/g, '「').replace(/\s+」/g, '」')
+               .replace(/『\s+/g, '『').replace(/\s+』/g, '』')
+               .replace(/（\s+/g, '（').replace(/\s+）/g, '）');
+
+      return res;
+    }
+
     btnRunOCR.addEventListener('click', async () => {
       if (!canvas) return;
 
@@ -455,7 +622,9 @@
       progressStatus.innerText = '正在調用 Tesseract 引擎...';
 
       try {
-        const lang = document.getElementById('langSelect').value;
+        const lang = langSelect.value;
+        const psm = psmSelect.value;
+
         const worker = await Tesseract.createWorker(lang, 1, {
           logger: m => {
             if (m.status === 'recognizing text') {
@@ -467,6 +636,12 @@
               progressStatus.innerText = m.status;
             }
           }
+        });
+
+        // 設定 Tesseract 參數：套用排版模式與禁止 CJK 強行加空格
+        await worker.setParameters({
+          tessedit_pageseg_mode: psm,
+          preserve_interword_spaces: '0',
         });
 
         // 如果有進行裁切框選，裁切畫布傳入
@@ -487,14 +662,38 @@
           ocrTarget = tempC;
         }
 
+        // 2x 智慧放大 (若勾選或文字目標偏小，插值提升漢字採樣點)
+        if (chkUpscale.checked || ocrTarget.width < 500) {
+          const scale = chkUpscale.checked ? 2 : (ocrTarget.width < 350 ? 2 : 1);
+          if (scale > 1) {
+            const upC = document.createElement('canvas');
+            upC.width = Math.round(ocrTarget.width * scale);
+            upC.height = Math.round(ocrTarget.height * scale);
+            const uCtx = upC.getContext('2d');
+            uCtx.imageSmoothingEnabled = true;
+            uCtx.imageSmoothingQuality = 'high';
+            uCtx.drawImage(ocrTarget, 0, 0, upC.width, upC.height);
+            ocrTarget = upC;
+          }
+        }
+
         const { data } = await worker.recognize(ocrTarget);
-        resultText.value = data.text;
+        let finalText = data.text;
+
+        // 如果辨識語言包含日語或偵測到假名，自動套用日漢校正
+        if (lang.includes('jpn') || /[\u3040-\u309f\u30a0-\u30ff]/.test(finalText)) {
+          finalText = fixJapaneseOCR(finalText);
+        } else {
+          finalText = cleanCJKSpaces(finalText);
+        }
+
+        resultText.value = finalText;
         
         badgeConfidence.innerText = `信心度: ${Math.round(data.confidence)}%`;
         badgeConfidence.classList.remove('hidden');
 
         // 存入 LocalStorage 歷史紀錄
-        saveToHistory(data.text, Math.round(data.confidence));
+        saveToHistory(finalText, Math.round(data.confidence));
 
         await worker.terminate();
       } catch (err) {
@@ -505,10 +704,14 @@
       }
     });
 
-    // 後處理：清除空白
+    // 後處理：去除 CJK/日語空格
     document.getElementById('btnCleanSpaces').addEventListener('click', () => {
-      // 去除中文字元間的多餘空白
-      resultText.value = resultText.value.replace(/([\u4e00-\u9fa5])\s+([\u4e00-\u9fa5])/g, '$1$2');
+      resultText.value = cleanCJKSpaces(resultText.value);
+    });
+
+    // 後處理：日漢專屬智慧校對 (長音、濁點、全半形)
+    document.getElementById('btnFixJapanese').addEventListener('click', () => {
+      resultText.value = fixJapaneseOCR(resultText.value);
     });
 
     // 複製與下載
@@ -526,12 +729,22 @@
       a.click();
     });
 
-    // 語音朗讀 (Web Speech API)
+    // 語音朗讀 (自動匹配日語/國語/英語發音)
     document.getElementById('btnSpeak').addEventListener('click', () => {
       if (!resultText.value) return;
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(resultText.value);
-      utterance.lang = 'zh-TW';
+      const lang = langSelect.value;
+      const hasKana = /[\u3040-\u309f\u30a0-\u30ff]/.test(resultText.value);
+      if (lang.includes('jpn') || hasKana) {
+        utterance.lang = 'ja-JP';
+      } else if (lang.includes('chi_sim')) {
+        utterance.lang = 'zh-CN';
+      } else if (lang.includes('eng') && !lang.includes('chi')) {
+        utterance.lang = 'en-US';
+      } else {
+        utterance.lang = 'zh-TW';
+      }
       window.speechSynthesis.speak(utterance);
     });
 
@@ -540,13 +753,25 @@
       const matches = resultText.value.match(/\b09\d{8}\b|\b0\d{1,2}-?\d{6,8}\b/g);
       alert(matches ? `提取電話:\n${matches.join('\n')}` : '未找到符合格式的電話號碼');
     });
+    document.getElementById('extJpPhone').addEventListener('click', () => {
+      const matches = resultText.value.match(/\b0\d{1,4}-?\d{1,4}-?\d{4}\b/g);
+      alert(matches ? `提取日本電話:\n${matches.join('\n')}` : '未找到符合格式的日本電話');
+    });
+    document.getElementById('extJpZip').addEventListener('click', () => {
+      const matches = resultText.value.match(/〒?\s*\b\d{3}-\d{4}\b/g);
+      alert(matches ? `提取郵便番號:\n${matches.join('\n')}` : '未找到郵便番號 (〒xxx-xxxx)');
+    });
+    document.getElementById('extJpYen').addEventListener('click', () => {
+      const matches = resultText.value.match(/[¥￥]\s*[\d,]+|[\d,]+\s*円/g);
+      alert(matches ? `提取日圓金額:\n${matches.join('\n')}` : '未找到日圓金額 (¥xxx / xxx円)');
+    });
     document.getElementById('extEmail').addEventListener('click', () => {
       const matches = resultText.value.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g);
       alert(matches ? `提取 Email:\n${matches.join('\n')}` : '未找到符合格式的電子信箱');
     });
     document.getElementById('extTaxId').addEventListener('click', () => {
-      const matches = resultText.value.match(/\b\d{8}\b/g);
-      alert(matches ? `可能統一編號 (8碼):\n${matches.join('\n')}` : '未找到 8 碼數字');
+      const matches = resultText.value.match(/\b\d{8}\b|\b\d{13}\b/g);
+      alert(matches ? `可能統一編號/法人番號:\n${matches.join('\n')}` : '未找到 8 碼統編或 13 碼法人番號');
     });
     document.getElementById('extNumbers').addEventListener('click', () => {
       const matches = resultText.value.match(/\b\d+(?:\.\d+)?\b/g);
