@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="OCR神器">
+  <title>智慧 OCR 文字辨識 PWA</title>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Tesseract.js v5 -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    .crop-selection {
+      border: 2px dashed #38bdf8;
+      background: rgba(56, 189, 248, 0.2);
+      position: absolute;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 flex flex-col min-h-screen">
+
+  <!-- 頂部導航 -->
+  <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 sticky top-0 z-30 px-4 py-3 flex items-center justify-between shadow-md">
+    <div class="flex items-center space-x-2">
+      <div class="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-500/30">
+        <i data-lucide="scan-text" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-base md:text-lg leading-tight">智慧 OCR 辨識神器</h1>
+        <p class="text-xs text-slate-400">離線支援・精準前處理・PWA</p>
+      </div>
+    </div>
+    <div class="flex items-center space-x-2">
+      <button id="btnInstall" class="hidden items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow transition">
+        <i data-lucide="download" class="w-4 h-4"></i>
+        <span>安裝 App</span>
+      </button>
+      <button id="btnHistory" class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-700/60 transition">
+        <i data-lucide="history" class="w-5 h-5"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- 主內容容器 -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-3 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- 左半邊：影像預覽與前處理面板 (7 Cols) -->
+    <section class="lg:col-span-7 flex flex-col space-y-4">
+      
+      <!-- 上傳/相機控制列 -->
+      <div class="bg-slate-800/60 border border-slate-700/70 rounded-2xl p-4 flex flex-wrap gap-3 items-center justify-between shadow-sm">
+        <div class="flex flex-wrap gap-2">
+          <label class="cursor-pointer inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition shadow">
+            <i data-lucide="image" class="w-4 h-4"></i>
+            <span>選取照片</span>
+            <input type="file" id="fileInput" accept="image/*" class="hidden">
+          </label>
+          <label class="cursor-pointer inline-flex items-center space-x-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium px-4 py-2 rounded-xl transition shadow">
+            <i data-lucide="camera" class="w-4 h-4"></i>
+            <span>立即拍攝</span>
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden">
+          </label>
+        </div>
+
+        <div class="flex items-center space-x-2 text-xs text-slate-400">
+          <i data-lucide="globe" class="w-4 h-4"></i>
+          <select id="langSelect" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-blue-500">
+            <option value="chi_tra+eng">繁體中文 + 英文</option>
+            <option value="chi_tra">繁體中文</option>
+            <option value="chi_sim+eng">簡體中文 + 英文</option>
+            <option value="eng">純英文 (English)</option>
+            <option value="jpn">日本語</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 影像畫布預覽區域 -->
+      <div class="relative bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden min-h-[320px] max-h-[500px] flex items-center justify-center shadow-inner group">
+        <div id="emptyPlaceholder" class="text-center p-6 text-slate-500">
+          <i data-lucide="upload-cloud" class="w-12 h-12 mx-auto stroke-1 mb-2"></i>
+          <p class="text-sm">請拍攝或上傳文件照片開始前處理與辨識</p>
+        </div>
+
+        <div id="canvasWrapper" class="relative hidden max-w-full max-h-full cursor-crosshair overflow-hidden">
+          <canvas id="mainCanvas" class="max-w-full max-h-[480px] object-contain block mx-auto"></canvas>
+          <div id="cropBox" class="crop-selection hidden"></div>
+        </div>
+
+        <!-- 旋轉與裁切懸浮快捷鈕 -->
+        <div id="canvasControls" class="absolute bottom-3 right-3 hidden flex-row gap-2 bg-slate-900/80 backdrop-blur p-1.5 rounded-xl border border-slate-700">
+          <button id="btnRotateLeft" title="逆時針 90 度" class="p-2 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white transition">
+            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+          </button>
+          <button id="btnRotateRight" title="順時針 90 度" class="p-2 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white transition">
+            <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+          </button>
+          <button id="btnToggleCrop" title="啟用/關閉區域裁切" class="px-2.5 py-1 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-blue-400 rounded-lg transition border border-slate-600 flex items-center space-x-1">
+            <i data-lucide="crop" class="w-3.5 h-3.5"></i>
+            <span id="cropStatusText">拖曳框選</span>
+          </button>
+          <button id="btnResetFilters" title="還原原始圖" class="p-2 hover:bg-rose-900/40 text-rose-400 rounded-lg transition">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- 影像精準度增強工具箱 (濾鏡前處理) -->
+      <div class="bg-slate-800/40 border border-slate-800 rounded-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between text-xs text-slate-400 font-semibold uppercase tracking-wider">
+          <span>辨識強化濾鏡（前處理管線）</span>
+          <span class="text-blue-400">大幅提升陰影及斜角辨識率</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+          <!-- 灰階與二值化開關 -->
+          <div class="flex flex-col space-y-1.5 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-300 font-medium">二值化 (去光影陰影)</label>
+              <input type="checkbox" id="chkThreshold" class="w-4 h-4 text-blue-600 rounded focus:ring-0">
+            </div>
+            <input type="range" id="rngThreshold" min="50" max="220" value="130" class="w-full h-1 bg-slate-700 rounded-lg accent-blue-500">
+          </div>
+
+          <!-- 對比度調節 -->
+          <div class="flex flex-col space-y-1.5 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-300 font-medium">字跡強化 (對比)</label>
+              <span id="txtContrast" class="text-slate-400">100%</span>
+            </div>
+            <input type="range" id="rngContrast" min="50" max="250" value="120" class="w-full h-1 bg-slate-700 rounded-lg accent-blue-500">
+          </div>
+
+          <!-- 傾斜微調 -->
+          <div class="flex flex-col space-y-1.5 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-300 font-medium">微調傾角 (Deskew)</label>
+              <span id="txtAngle" class="text-slate-400">0°</span>
+            </div>
+            <input type="range" id="rngAngle" min="-15" max="15" value="0" step="0.5" class="w-full h-1 bg-slate-700 rounded-lg accent-blue-500">
+          </div>
+        </div>
+
+        <!-- 辨識執行鈕 -->
+        <button id="btnRunOCR" disabled class="w-full mt-2 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-500/20 transition flex items-center justify-center space-x-2">
+          <i data-lucide="play" class="w-4 h-4 fill-current"></i>
+          <span>開始辨識提取文字</span>
+        </button>
+
+        <!-- 進度條 -->
+        <div id="progressContainer" class="hidden space-y-1.5 pt-2">
+          <div class="flex justify-between text-xs text-slate-400">
+            <span id="progressStatus">初始化 OCR 引擎...</span>
+            <span id="progressPercent">0%</span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+            <div id="progressBar" class="bg-blue-500 h-full w-0 transition-all duration-200"></div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- 右半邊：辨識結果、後處理校正與匯出 (5 Cols) -->
+    <section class="lg:col-span-5 flex flex-col space-y-4">
+      <div class="bg-slate-800/60 border border-slate-700/70 rounded-2xl p-4 flex-1 flex flex-col shadow-sm">
+        
+        <div class="flex items-center justify-between pb-3 border-b border-slate-700/60">
+          <div class="flex items-center space-x-2">
+            <h2 class="font-bold text-sm md:text-base text-slate-200">辨識結果</h2>
+            <span id="badgeConfidence" class="hidden text-xs px-2 py-0.5 rounded-full bg-emerald-900/60 text-emerald-400 font-mono border border-emerald-700/50">信心度 0%</span>
+          </div>
+          <div class="flex items-center space-x-1.5">
+            <button id="btnCleanSpaces" title="清除中文贅字空白" class="p-1.5 text-xs bg-slate-700/70 hover:bg-slate-700 text-slate-300 rounded-lg transition">去除空白</button>
+            <button id="btnCopy" class="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-700 transition" title="複製純文字">
+              <i data-lucide="copy" class="w-4 h-4"></i>
+            </button>
+            <button id="btnDownload" class="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-700 transition" title="下載 .txt 檔">
+              <i data-lucide="download" class="w-4 h-4"></i>
+            </button>
+            <button id="btnSpeak" class="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-700 transition" title="語音朗讀">
+              <i data-lucide="volume-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 文字顯示編輯區 -->
+        <div class="relative flex-1 my-3">
+          <textarea id="resultText" placeholder="辨識結果將即時顯示於此，可直接在框內手動校對編輯..." class="w-full h-full min-h-[220px] bg-slate-900/80 border border-slate-700 rounded-xl p-3 text-slate-200 text-sm focus:outline-none focus:border-blue-500 font-sans resize-none leading-relaxed"></textarea>
+        </div>
+
+        <!-- 快速提取小工具 -->
+        <div class="space-y-2 pt-2 border-t border-slate-700/50">
+          <span class="text-xs text-slate-400 font-medium">智慧實體快速提取 (Regex)：</span>
+          <div class="flex flex-wrap gap-1.5">
+            <button id="extPhone" class="text-xs bg-slate-700/50 hover:bg-blue-600/30 hover:text-blue-300 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-600 transition">📞 電話號碼</button>
+            <button id="extEmail" class="text-xs bg-slate-700/50 hover:bg-blue-600/30 hover:text-blue-300 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-600 transition">✉️ 電子信箱</button>
+            <button id="extTaxId" class="text-xs bg-slate-700/50 hover:bg-blue-600/30 hover:text-blue-300 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-600 transition">🏢 統一編號 (8碼)</button>
+            <button id="extNumbers" class="text-xs bg-slate-700/50 hover:bg-blue-600/30 hover:text-blue-300 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-600 transition">🔢 所有純數字</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 歷史紀錄側邊抽屜 -->
+  <aside id="historyDrawer" class="fixed inset-y-0 right-0 w-80 bg-slate-800 border-l border-slate-700 shadow-2xl transform translate-x-full transition-transform duration-300 z-50 flex flex-col">
+    <div class="p-4 border-b border-slate-700 flex items-center justify-between">
+      <h3 class="font-bold text-sm text-slate-200 flex items-center space-x-1.5">
+        <i data-lucide="history" class="w-4 h-4"></i>
+        <span>辨識歷史記錄</span>
+      </h3>
+      <button id="btnCloseHistory" class="text-slate-400 hover:text-white p-1">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+    <div id="historyList" class="flex-1 overflow-y-auto p-3 space-y-2">
+      <!-- 歷史項目動態插入 -->
+    </div>
+    <div class="p-3 border-t border-slate-700">
+      <button id="btnClearHistory" class="w-full py-2 text-xs text-rose-400 hover:bg-rose-950/40 rounded-lg transition font-medium">清空所有紀錄</button>
+    </div>
+  </aside>
+
+  <!-- Service Worker 註冊與核心邏輯腳本 -->
+  <script>
+    // 1. 初始化 Lucide 圖標
+    lucide.createIcons();
+
+    // 2. 註冊 PWA Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('PWA SW 註冊就緒:', reg.scope))
+          .catch(err => console.warn('PWA SW 註冊失敗:', err));
+      });
+    }
+
+    // 3. PWA 安裝提示攔截 (Android / PC Chrome)
+    let deferredPrompt;
+    const btnInstall = document.getElementById('btnInstall');
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      btnInstall.classList.remove('hidden');
+      btnInstall.classList.add('inline-flex');
+    });
+
+    btnInstall.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log('使用者安裝反饋:', outcome);
+      deferredPrompt = null;
+      btnInstall.classList.add('hidden');
+    });
+
+    // 4. 影像處理與 OCR 邏輯
+    let rawImage = null;
+    let rotationAngle = 0;
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+    const canvasWrapper = document.getElementById('canvasWrapper');
+    const emptyPlaceholder = document.getElementById('emptyPlaceholder');
+    const canvasControls = document.getElementById('canvasControls');
+    const btnRunOCR = document.getElementById('btnRunOCR');
+
+    // 濾鏡控制項
+    const chkThreshold = document.getElementById('chkThreshold');
+    const rngThreshold = document.getElementById('rngThreshold');
+    const rngContrast = document.getElementById('rngContrast');
+    const rngAngle = document.getElementById('rngAngle');
+    const txtContrast = document.getElementById('txtContrast');
+    const txtAngle = document.getElementById('txtAngle');
+
+    // 監聽圖片載入
+    function loadImage(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          rawImage = img;
+          rotationAngle = 0;
+          rngAngle.value = 0;
+          txtAngle.innerText = "0°";
+          emptyPlaceholder.classList.add('hidden');
+          canvasWrapper.classList.remove('hidden');
+          canvasControls.classList.remove('hidden');
+          canvasControls.classList.add('flex');
+          btnRunOCR.disabled = false;
+          applyPipeline();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    document.getElementById('fileInput').addEventListener('change', (e) => loadImage(e.target.files[0]));
+    document.getElementById('cameraInput').addEventListener('change', (e) => loadImage(e.target.files[0]));
+
+    // 前處理管線 (旋轉、傾斜校正、對比、二值化)
+    function applyPipeline() {
+      if (!rawImage) return;
+
+      const totalAngle = (rotationAngle + parseFloat(rngAngle.value)) * Math.PI / 180;
+      const cos = Math.abs(Math.cos(totalAngle));
+      const sin = Math.abs(Math.sin(totalAngle));
+      
+      const width = rawImage.width;
+      const height = rawImage.height;
+      canvas.width = Math.floor(width * cos + height * sin);
+      canvas.height = Math.floor(width * sin + height * cos);
+
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(totalAngle);
+      ctx.drawImage(rawImage, -width / 2, -height / 2);
+      ctx.restore();
+
+      // 取得畫布像素進行濾鏡操作
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const d = imgData.data;
+
+      const contrast = parseFloat(rngContrast.value) / 100;
+      const factor = (259 * (contrast * 255 + 255)) / (255 * (259 - contrast * 255));
+      const doThreshold = chkThreshold.checked;
+      const threshVal = parseInt(rngThreshold.value, 10);
+
+      for (let i = 0; i < d.length; i += 4) {
+        // 對比增強
+        let r = factor * (d[i] - 128) + 128;
+        let g = factor * (d[i+1] - 128) + 128;
+        let b = factor * (d[i+2] - 128) + 128;
+
+        // 灰階 (Luminance)
+        let gray = 0.299 * r + 0.587 * g + 0.114 * b;
+
+        // 二值化
+        if (doThreshold) {
+          gray = gray >= threshVal ? 255 : 0;
+        }
+
+        d[i] = gray;
+        d[i+1] = gray;
+        d[i+2] = gray;
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+    }
+
+    // 綁定前處理滑桿事件
+    rngContrast.addEventListener('input', (e) => {
+      txtContrast.innerText = `${e.target.value}%`;
+      applyPipeline();
+    });
+    rngAngle.addEventListener('input', (e) => {
+      txtAngle.innerText = `${e.target.value}°`;
+      applyPipeline();
+    });
+    chkThreshold.addEventListener('change', applyPipeline);
+    rngThreshold.addEventListener('input', applyPipeline);
+
+    document.getElementById('btnRotateRight').addEventListener('click', () => {
+      rotationAngle = (rotationAngle + 90) % 360;
+      applyPipeline();
+    });
+    document.getElementById('btnRotateLeft').addEventListener('click', () => {
+      rotationAngle = (rotationAngle - 90 + 360) % 360;
+      applyPipeline();
+    });
+    document.getElementById('btnResetFilters').addEventListener('click', () => {
+      rotationAngle = 0;
+      rngAngle.value = 0;
+      txtAngle.innerText = "0°";
+      rngContrast.value = 100;
+      txtContrast.innerText = "100%";
+      chkThreshold.checked = false;
+      applyPipeline();
+    });
+
+    // 區域裁切選取
+    let isCropping = false;
+    let startX = 0, startY = 0;
+    const cropBox = document.getElementById('cropBox');
+    const btnToggleCrop = document.getElementById('btnToggleCrop');
+
+    btnToggleCrop.addEventListener('click', () => {
+      isCropping = !isCropping;
+      btnToggleCrop.classList.toggle('bg-blue-600', isCropping);
+      btnToggleCrop.classList.toggle('text-white', isCropping);
+      document.getElementById('cropStatusText').innerText = isCropping ? '框選中...' : '拖曳框選';
+      if (!isCropping) cropBox.classList.add('hidden');
+    });
+
+    canvasWrapper.addEventListener('mousedown', (e) => {
+      if (!isCropping) return;
+      const rect = canvas.getBoundingClientRect();
+      startX = e.clientX - rect.left;
+      startY = e.clientY - rect.top;
+      cropBox.style.left = `${startX}px`;
+      cropBox.style.top = `${startY}px`;
+      cropBox.style.width = '0px';
+      cropBox.style.height = '0px';
+      cropBox.classList.remove('hidden');
+
+      function onMouseMove(moveEvent) {
+        const currentX = moveEvent.clientX - rect.left;
+        const currentY = moveEvent.clientY - rect.top;
+        const w = Math.abs(currentX - startX);
+        const h = Math.abs(currentY - startY);
+        cropBox.style.left = `${Math.min(startX, currentX)}px`;
+        cropBox.style.top = `${Math.min(startY, currentY)}px`;
+        cropBox.style.width = `${w}px`;
+        cropBox.style.height = `${h}px`;
+      }
+
+      function onMouseUp() {
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+      }
+
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+    });
+
+    // 執行 OCR
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const progressStatus = document.getElementById('progressStatus');
+    const progressPercent = document.getElementById('progressPercent');
+    const resultText = document.getElementById('resultText');
+    const badgeConfidence = document.getElementById('badgeConfidence');
+
+    btnRunOCR.addEventListener('click', async () => {
+      if (!canvas) return;
+
+      btnRunOCR.disabled = true;
+      progressContainer.classList.remove('hidden');
+      progressBar.style.width = '0%';
+      progressStatus.innerText = '正在調用 Tesseract 引擎...';
+
+      try {
+        const lang = document.getElementById('langSelect').value;
+        const worker = await Tesseract.createWorker(lang, 1, {
+          logger: m => {
+            if (m.status === 'recognizing text') {
+              const p = Math.floor(m.progress * 100);
+              progressBar.style.width = `${p}%`;
+              progressPercent.innerText = `${p}%`;
+              progressStatus.innerText = '文字深度辨識運算中...';
+            } else {
+              progressStatus.innerText = m.status;
+            }
+          }
+        });
+
+        // 如果有進行裁切框選，裁切畫布傳入
+        let ocrTarget = canvas;
+        if (!cropBox.classList.contains('hidden') && parseInt(cropBox.style.width) > 10) {
+          const rect = canvas.getBoundingClientRect();
+          const scaleX = canvas.width / rect.width;
+          const scaleY = canvas.height / rect.height;
+          const sx = parseFloat(cropBox.style.left) * scaleX;
+          const sy = parseFloat(cropBox.style.top) * scaleY;
+          const sw = parseFloat(cropBox.style.width) * scaleX;
+          const sh = parseFloat(cropBox.style.height) * scaleY;
+
+          const tempC = document.createElement('canvas');
+          tempC.width = sw;
+          tempC.height = sh;
+          tempC.getContext('2d').drawImage(canvas, sx, sy, sw, sh, 0, 0, sw, sh);
+          ocrTarget = tempC;
+        }
+
+        const { data } = await worker.recognize(ocrTarget);
+        resultText.value = data.text;
+        
+        badgeConfidence.innerText = `信心度: ${Math.round(data.confidence)}%`;
+        badgeConfidence.classList.remove('hidden');
+
+        // 存入 LocalStorage 歷史紀錄
+        saveToHistory(data.text, Math.round(data.confidence));
+
+        await worker.terminate();
+      } catch (err) {
+        alert('辨識過程發生異常: ' + err.message);
+      } finally {
+        btnRunOCR.disabled = false;
+        setTimeout(() => progressContainer.classList.add('hidden'), 1000);
+      }
+    });
+
+    // 後處理：清除空白
+    document.getElementById('btnCleanSpaces').addEventListener('click', () => {
+      // 去除中文字元間的多餘空白
+      resultText.value = resultText.value.replace(/([\u4e00-\u9fa5])\s+([\u4e00-\u9fa5])/g, '$1$2');
+    });
+
+    // 複製與下載
+    document.getElementById('btnCopy').addEventListener('click', () => {
+      if (!resultText.value) return;
+      navigator.clipboard.writeText(resultText.value).then(() => alert('已成功複製辨識文字！'));
+    });
+
+    document.getElementById('btnDownload').addEventListener('click', () => {
+      if (!resultText.value) return;
+      const blob = new Blob([resultText.value], { type: 'text/plain;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `OCR-Result-${Date.now()}.txt`;
+      a.click();
+    });
+
+    // 語音朗讀 (Web Speech API)
+    document.getElementById('btnSpeak').addEventListener('click', () => {
+      if (!resultText.value) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(resultText.value);
+      utterance.lang = 'zh-TW';
+      window.speechSynthesis.speak(utterance);
+    });
+
+    // 正則表達式快捷提取
+    document.getElementById('extPhone').addEventListener('click', () => {
+      const matches = resultText.value.match(/\b09\d{8}\b|\b0\d{1,2}-?\d{6,8}\b/g);
+      alert(matches ? `提取電話:\n${matches.join('\n')}` : '未找到符合格式的電話號碼');
+    });
+    document.getElementById('extEmail').addEventListener('click', () => {
+      const matches = resultText.value.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g);
+      alert(matches ? `提取 Email:\n${matches.join('\n')}` : '未找到符合格式的電子信箱');
+    });
+    document.getElementById('extTaxId').addEventListener('click', () => {
+      const matches = resultText.value.match(/\b\d{8}\b/g);
+      alert(matches ? `可能統一編號 (8碼):\n${matches.join('\n')}` : '未找到 8 碼數字');
+    });
+    document.getElementById('extNumbers').addEventListener('click', () => {
+      const matches = resultText.value.match(/\b\d+(?:\.\d+)?\b/g);
+      alert(matches ? `提取數字:\n${matches.join(', ')}` : '未找到數字');
+    });
+
+    // 歷史紀錄處理
+    const drawer = document.getElementById('historyDrawer');
+    document.getElementById('btnHistory').addEventListener('click', () => {
+      renderHistory();
+      drawer.classList.remove('translate-x-full');
+    });
+    document.getElementById('btnCloseHistory').addEventListener('click', () => {
+      drawer.classList.add('translate-x-full');
+    });
+
+    function saveToHistory(text, conf) {
+      if (!text.trim()) return;
+      const history = JSON.parse(localStorage.getItem('ocr_history') || '[]');
+      history.unshift({ id: Date.now(), text, conf, time: new Date().toLocaleTimeString() });
+      if (history.length > 20) history.pop();
+      localStorage.setItem('ocr_history', JSON.stringify(history));
+    }
+
+    function renderHistory() {
+      const list = document.getElementById('historyList');
+      const history = JSON.parse(localStorage.getItem('ocr_history') || '[]');
+      if (history.length === 0) {
+        list.innerHTML = '<p class="text-xs text-slate-500 text-center py-6">暫無辨識紀錄</p>';
+        return;
+      }
+      list.innerHTML = history.map(item => `
+        <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/60 text-xs space-y-1.5 cursor-pointer hover:border-blue-500 transition" onclick="loadHistoryItem('${encodeURIComponent(item.text)}')">
+          <div class="flex justify-between text-slate-400">
+            <span>${item.time}</span>
+            <span class="text-emerald-400 font-mono">${item.conf}%</span>
+          </div>
+          <p class="text-slate-200 line-clamp-3">${item.text.replace(/</g, '&lt;')}</p>
+        </div>
+      `).join('');
+    }
+
+    window.loadHistoryItem = function(encoded) {
+      resultText.value = decodeURIComponent(encoded);
+      drawer.classList.add('translate-x-full');
+    };
+
+    document.getElementById('btnClearHistory').addEventListener('click', () => {
+      localStorage.removeItem('ocr_history');
+      renderHistory();
+    });
+  </script>
+</body>
+</html>
